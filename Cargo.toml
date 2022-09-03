@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "app",
+    "api",
+    "port_scanner",
+    "dns_enumerator",
+]
