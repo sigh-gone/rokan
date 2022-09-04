@@ -21,8 +21,8 @@ open_ports -> the ports that are open in the host.
  */
 #[derive(Debug)]
 pub struct CommonScanRecord {
-    pub host:String,
-    pub scan:ScanRecord,
+    pub host: String,
+    pub scan: ScanRecord,
 }
 
 /**
@@ -34,11 +34,9 @@ open_ports -> the ports that are open in the host.
  */
 #[derive(Debug)]
 pub struct CommonBannerRecord {
-    pub host:String,
-    pub banner_scan:Vec<BannerRecord>,
+    pub host: String,
+    pub banner_scan: Vec<BannerRecord>,
 }
-
-
 
 /**
 Props:
@@ -51,7 +49,7 @@ banner--> the banner in string format ready to be parsed.
 */
 #[derive(Debug)]
 pub struct BannerRecord {
-    pub ip : String,
+    pub ip: String,
     pub port: u16,
     pub banner: String,
 }

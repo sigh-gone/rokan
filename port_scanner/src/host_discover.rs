@@ -1,4 +1,7 @@
-use std::{net::{IpAddr, AddrParseError}, str::FromStr};
+use std::{
+    net::{AddrParseError, IpAddr},
+    str::FromStr,
+};
 
 use dns_lookup::lookup_host;
 
@@ -15,10 +18,9 @@ pub async fn get_ip(addr: &str) -> std::result::Result<IpAddr, AddrParseError> {
 }
 
 pub async fn get_all_ips(addr: &str) -> std::result::Result<Vec<IpAddr>, &str> {
-            if let Ok(ip_vector)= lookup_host(addr){
-                Ok(ip_vector)
-            }else{
-                Err("get_all_ips error")
-            }
+    if let Ok(ip_vector) = lookup_host(addr) {
+        Ok(ip_vector)
+    } else {
+        Err("get_all_ips error")
     }
-
+}
