@@ -56,6 +56,16 @@ mod common_scnr_tests {
         assert!(!records.is_empty());
         assert!(!records[0].scan.open_ports.is_empty());
     }
+
+    #[test]
+    fn common_banner_scan(){
+        let record = aw!(CommonScnr::host_banner_scan("youtube.com", vec![80], 100));
+        assert!(record.is_ok());
+        let record = record.unwrap();
+        println!("{:?}", record);
+    }
+
+
 }
 #[cfg(test)]
 mod dropbox_scnr_tests {

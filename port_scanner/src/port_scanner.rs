@@ -1,9 +1,9 @@
 use crate::host_discover::{get_all_ips, get_ip};
-use crate::scnr_records::{CommonScanRecord, DropBox, ScanRecord};
+use crate::scnr_records::{BannerRecord, CommonBannerRecord, CommonScanRecord, DropBox, ScanRecord};
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 use tokio::fs::File;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 pub struct DropBoxScnr {}
@@ -70,7 +70,7 @@ impl CommonScnr {
         }
     }
 
-    /*pub async fn host_banner_scan(
+    pub async fn host_banner_scan(
         host:&str,
         ports: Vec<u16>,
         timeout: u64)-> Result<CommonBannerRecord, &str>{
@@ -85,7 +85,45 @@ impl CommonScnr {
             Err("host_scan error")
         }
 
-    }*/
+    }
+
+    pub async fn hosts_banner_scan(
+        hosts:Vec<&str>,
+        ports: Vec<u16>,
+        timeout: u64)-> Result<Vec<CommonBannerRecord>, &str>{
+        let mut common_banner_vec:Vec<CommonBannerRecord>=vec![];
+        for host in hosts{
+            if let Ok(ip) = get_ip(host).await{
+                let banner_records = IpScnr::banner_grab_ipaddr(ip, ports, timeout)
+                    .await
+                    .expect("scan_ip_addr, hostscn error");
+                let host = host.to_string();
+                let record = CommonBannerRecord { host, banner_scan: banner_records };
+                common_banner_vec.push(record)
+            }else{
+               continue
+            }
+        }
+        Ok(common_banner_vec)
+    }
+
+    pub async fn tcp_string_fuzz(
+        host:&str,
+        ports: Vec<u16>,
+        timeout: u64,
+        msg:String)-> Result<CommonBannerRecord, &str>{
+        if let Ok(ip) = get_ip(host).await{
+            let banner_records = IpScnr::fuzz_string_ipaddr(ip, ports, timeout, &msg)
+                .await
+                .expect("scan_ip_addr, hostscn error");
+            let host = host.to_string();
+            let record = CommonBannerRecord { host, banner_scan: banner_records };
+            Ok(record)
+        }else{
+            Err("host_scan error")
+        }
+
+    }
 
     pub async fn hosts_scan(
         hosts: Vec<&str>,
@@ -168,8 +206,6 @@ impl IpScnr {
         Ok(open_ports)
     }
 
-    /*
-    banner grabber in the works
 
     pub async fn banner_grab_ipaddr(address: IpAddr,
                                     ports: Vec<u16>,
@@ -182,44 +218,57 @@ impl IpScnr {
             match tokio::time::timeout(Duration::from_millis(timeout), TcpStream::connect(socket_address)).await {
                 Ok(stream_result)=>{
                     if let Ok(mut stream) = stream_result {
-                        let mut banner = String::new();
-                        //stream.read_to_string(&mut banner).await?;
-                        if banner.is_empty() {
-                            let request = format!("HEAD / HTTP/1.1\r\n");
-                            stream.write_all(request.as_bytes()).await?;
-                            let mut banner = Vec::new();
-                            stream.read_to_end(&mut banner).await?;
-                        }
-                        //let banner_string = String::from_utf8(banner).unwrap();
+                        let request = format!("\
+                                                        HEAD / HTTP/1.1\r\n\
+                                                        Host: {address}\r\n\
+                                                        Connection: close\r\n\
+                                                        \r\n\
+                                                    ");
+                        stream.write_all(request.as_bytes()).await?;
+                        let mut banner = String::new();//Vec::new();
+                        stream.read_to_string(&mut banner).await?;
                         let record = BannerRecord { ip:address.to_string(), port, banner:parse_banner(&banner) };
                         banner_records.push(record)
-
-                        /*let (mut read, mut write) = tokio::io::split(stream);
-                        let query =  "GET / HTTP/1.1\n\n".as_bytes();
-                        let mut buf = String::new();
-                        read.read_to_string(&mut buf).await.unwrap();
-
-                        if buf.is_empty() {
-                            let _ = write.write_all(query);
-                            read.read_to_string(&mut buf).await.unwrap();
-                        }
-
-                        let record = BannerRecord { ip:address.to_string(), port, banner:parse_banner(&buf) };
-                        banner_records.push(record)*/
                     }
                 },
                 Err(_)=>{println!("timed out")},
             }
         }
         Ok(banner_records)
-    }*/
+    }
+
+    pub async fn fuzz_string_ipaddr(address: IpAddr,
+                                    ports: Vec<u16>,
+                                    timeout: u64,
+                                    msg:&str
+    ) -> Result<Vec<BannerRecord>, std::io::Error> {
+        let mut banner_records: Vec<BannerRecord>= vec![];
+        for port in ports {
+            let socket_address: SocketAddr = SocketAddr::new(address, port);
+
+            match tokio::time::timeout(Duration::from_millis(timeout), TcpStream::connect(socket_address)).await {
+                Ok(stream_result)=>{
+                    if let Ok(mut stream) = stream_result {
+                        let request = msg;
+                        stream.write_all(request.as_bytes()).await?;
+                        let mut banner = String::new();//Vec::new();
+                        stream.read_to_string(&mut banner).await?;
+                        let record = BannerRecord { ip:address.to_string(), port, banner:parse_banner(&banner) };
+                        banner_records.push(record)
+                    }
+                },
+                Err(_)=>{println!("timed out")},
+            }
+        }
+        Ok(banner_records)
+    }
 }
-/*
+
 fn parse_banner(banner: &str) -> String {
     let b_vec = Vec::from_iter(banner.split(' '));
     String::from(b_vec[0])
 
-}*/
+}
 
 async fn deserialize_dropbox(data: &str) -> Result<DropBox, String> {
     // Parse the string of data into serde_json::Value.

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 /**
 Props:
 
-host -> host of the port scan.
+Ip -> host ip of the port scan.
 
 open_ports -> the ports that are open in the host.
 */
@@ -17,7 +17,7 @@ Props:
 
 host -> host of the port scan.
 
-open_ports -> the ports that are open in the host.
+scan -> contains the ScanRecord.
  */
 #[derive(Debug)]
 pub struct CommonScanRecord {
@@ -28,9 +28,9 @@ pub struct CommonScanRecord {
 /**
 Props:
 
-host -> host of the port scan.
+host -> host of the banner scan.
 
-open_ports -> the ports that are open in the host.
+banner_scan -> the banner of the port.
  */
 #[derive(Debug)]
 pub struct CommonBannerRecord {
