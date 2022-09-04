@@ -7,14 +7,44 @@ use std::time::Duration;
 
 #[derive(Debug)]
 pub struct DomainRecord {
-    a_records: Vec<String>,
-    aaaa_records: Vec<String>,
-    mx_records: Vec<String>,
-    soa_records: Vec<String>,
-    txt_records: Vec<String>,
-    ns_records: Vec<String>,
-    cname_records: Vec<String>,
-    srv_records:Vec<String>,
+    a: Vec<String>,
+    aaaa: Vec<String>,
+    mx: Vec<String>,
+    soa: Vec<String>,
+    txt: Vec<String>,
+    ns: Vec<String>,
+    cname: Vec<String>,
+    srv:Vec<String>,
+}
+#[derive(Debug)]
+pub struct HostDnsRecord {
+    host:String,
+    domain_record:DomainRecord
+}
+
+
+
+pub fn host_dns(host:&str)->Result<HostDnsRecord, &str>{
+
+        if let Ok(dns_records) = dns_records(host){
+            let host_dns_record = HostDnsRecord{ host : String::from(host), domain_record: dns_records};
+            Ok(host_dns_record)
+        }else{
+            Err("host_dns failed")
+        }
+
+}
+
+pub fn multi_host_dns(hosts:Vec<&str>)->Result<Vec<HostDnsRecord>, Box<Error>>{
+    let mut ret_vec :Vec<HostDnsRecord> = vec![];
+
+    for host in hosts {
+        if let Ok(dns_records) = dns_records(host){
+            let host_dns_record = HostDnsRecord{ host : String::from(host), domain_record: dns_records};
+            ret_vec.push(host_dns_record);
+        }
+    }
+    Ok(ret_vec)
 }
 
 pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
@@ -33,14 +63,14 @@ pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
         Type::SRV,
     ];
     let mut dns_record = DomainRecord{
-        a_records:vec![],
-        aaaa_records:vec![],
-        mx_records:vec![],
-        soa_records:vec![],
-        txt_records:vec![],
-        ns_records:vec![],
-        cname_records:vec![],
-        srv_records:vec![],
+        a:vec![],
+        aaaa:vec![],
+        mx:vec![],
+        soa:vec![],
+        txt:vec![],
+        ns:vec![],
+        cname:vec![],
+        srv:vec![],
     };
 
     for rtype in rtype_vec {
@@ -69,30 +99,30 @@ pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
         for record in answer.answers.into_iter() {
             match record.resource {
                 A(resp) => {
-                    dns_record.a_records.push(resp.to_string());
+                    dns_record.a.push(resp.to_string());
                 },
                 AAAA(resp) => {
-                    dns_record.aaaa_records.push(resp.to_string());
+                    dns_record.aaaa.push(resp.to_string());
                 },
                 CNAME(resp) => {
-                    dns_record.cname_records.push(resp);
+                    dns_record.cname.push(resp);
                 },
                 NS(resp) => {
-                    dns_record.ns_records.push(resp);
+                    dns_record.ns.push(resp);
                 },
                 PTR(_) => {},
                 TXT(resp) => {
-                    dns_record.txt_records.push(resp.to_string());
+                    dns_record.txt.push(resp.to_string());
                 },
                 SPF(_) => {},
                 MX(resp) => {
-                    dns_record.mx_records.push(resp.to_string());
+                    dns_record.mx.push(resp.to_string());
                 },
                 SOA(resp) => {
-                    dns_record.soa_records.push(resp.to_string());
+                    dns_record.soa.push(resp.to_string());
                 },
                 SRV(resp) =>{
-                    dns_record.srv_records.push(resp.to_string());
+                    dns_record.srv.push(resp.to_string());
                 },
                 OPT => {},
                 ANY => {},
@@ -113,6 +143,6 @@ mod dns_tests {
         let dns =dns_records("example.com");
         println!("{:?}", dns);
         assert!(dns.is_ok());
-        assert!(!dns.unwrap().a_records.is_empty());
+        assert!(!dns.unwrap().a.is_empty());
     }
 }
