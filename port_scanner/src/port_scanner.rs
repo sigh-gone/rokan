@@ -1,23 +1,25 @@
-
+use crate::host_discover::{get_all_ips, get_ip};
+use crate::scnr_records::{CommonScanRecord, DropBox, ScanRecord};
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 use tokio::fs::File;
-use tokio::io::{AsyncReadExt};
+use tokio::io::AsyncReadExt;
 use tokio::net::TcpStream;
-use crate::host_discover::{get_ip, get_all_ips};
-use crate::scnr_records::{ScanRecord, DropBox, CommonScanRecord};
 
+pub struct DropBoxScnr {}
 
-pub struct DropBoxScnr{}
-
-impl DropBoxScnr{
+impl DropBoxScnr {
     pub async fn from_file(file_name: &str) -> Result<Vec<CommonScanRecord>, &str> {
         let mut file = File::open(file_name).await.expect("could not open file");
         let mut data = String::new();
 
-        file.read_to_string(&mut data).await.expect("could not open read to string");
+        file.read_to_string(&mut data)
+            .await
+            .expect("could not open read to string");
 
-        let records = DropBoxScnr::from_string(data).await.expect("dropboxscnr failure");
+        let records = DropBoxScnr::from_string(data)
+            .await
+            .expect("dropboxscnr failure");
 
         Ok(records)
     }
@@ -32,35 +34,42 @@ impl DropBoxScnr{
             address.ports.dedup();
 
             match CommonScnr::host_ip_scan(&address.host, address.ports, 60).await {
-                Ok(record)=>{return_vector.push(record)},
-                Err(error_message)=>{println!("{}",error_message)}
+                Ok(record) => return_vector.push(record),
+                Err(error_message) => {
+                    println!("{}", error_message)
+                }
             }
         }
         Ok(return_vector)
     }
 }
 
-
 pub struct CommonScnr {}
 
-impl CommonScnr{
+impl CommonScnr {
     pub async fn host_ip_scan(
-        host:&str,
+        host: &str,
         ports: Vec<u16>,
-        timeout: u64)-> Result<CommonScanRecord, &str>{
-        if let Ok(ip) = get_ip(host).await{
+        timeout: u64,
+    ) -> Result<CommonScanRecord, &str> {
+        if let Ok(ip) = get_ip(host).await {
             let open_ports = IpScnr::scan_ip_addr(ip, ports, timeout)
-            .await
-            .expect("scan_ip_addr, hostscn error");
-            let scan = ScanRecord {ip: ip.to_string(), open_ports };
-            let common_record = CommonScanRecord{ host: String::from(host), scan };
+                .await
+                .expect("scan_ip_addr, hostscn error");
+            let scan = ScanRecord {
+                ip: ip.to_string(),
+                open_ports,
+            };
+            let common_record = CommonScanRecord {
+                host: String::from(host),
+                scan,
+            };
             Ok(common_record)
-        }else{
+        } else {
             Err("host_scan error")
         }
-
     }
-    
+
     /*pub async fn host_banner_scan(
         host:&str,
         ports: Vec<u16>,
@@ -79,73 +88,81 @@ impl CommonScnr{
     }*/
 
     pub async fn hosts_scan(
-        hosts:Vec<&str>,
+        hosts: Vec<&str>,
         ports: Vec<u16>,
-        timeout: u64)-> Result<Vec<CommonScanRecord>, &str>{
-            let mut scan_records :Vec<CommonScanRecord>=vec![];
-            for host in hosts{
-                if let Ok(ip) = get_ip(host).await{
-                    let open_ports = IpScnr::scan_ip_addr(ip, ports.clone(), timeout).await.expect("scan");
-                    let host = host.to_string();
-                    let scan = ScanRecord {ip:ip.to_string(), open_ports };
-                    let common_record = CommonScanRecord {host, scan};
-                    scan_records.push(common_record);
-                }
+        timeout: u64,
+    ) -> Result<Vec<CommonScanRecord>, &str> {
+        let mut scan_records: Vec<CommonScanRecord> = vec![];
+        for host in hosts {
+            if let Ok(ip) = get_ip(host).await {
+                let open_ports = IpScnr::scan_ip_addr(ip, ports.clone(), timeout)
+                    .await
+                    .expect("scan");
+                let host = host.to_string();
+                let scan = ScanRecord {
+                    ip: ip.to_string(),
+                    open_ports,
+                };
+                let common_record = CommonScanRecord { host, scan };
+                scan_records.push(common_record);
             }
-            Ok(scan_records)
-
+        }
+        Ok(scan_records)
     }
 
     pub async fn all_host_ip(
-        host:&str,
+        host: &str,
         ports: Vec<u16>,
-        timeout: u64)-> Result<Vec<CommonScanRecord>, &str>{
-            let mut common_records:Vec<CommonScanRecord>=vec![];
+        timeout: u64,
+    ) -> Result<Vec<CommonScanRecord>, &str> {
+        let mut common_records: Vec<CommonScanRecord> = vec![];
 
-            if let Ok(ips) = get_all_ips(host).await{
-                for ip in ips {
-                    if let Ok(open_ports) = IpScnr::scan_ip_addr(ip, ports.clone(), timeout).await {
-                        let host = host.to_string();
-                        let scan_record = ScanRecord { ip: ip.to_string(), open_ports };
-                        let record = CommonScanRecord { host, scan: scan_record };
-                        common_records.push(record)
-                    }
+        if let Ok(ips) = get_all_ips(host).await {
+            for ip in ips {
+                if let Ok(open_ports) = IpScnr::scan_ip_addr(ip, ports.clone(), timeout).await {
+                    let host = host.to_string();
+                    let scan_record = ScanRecord {
+                        ip: ip.to_string(),
+                        open_ports,
+                    };
+                    let record = CommonScanRecord {
+                        host,
+                        scan: scan_record,
+                    };
+                    common_records.push(record)
                 }
-            }else{
-                return Err("lookup host failed")
             }
+        } else {
+            return Err("lookup host failed");
+        }
 
-            Ok(common_records)
-
+        Ok(common_records)
     }
-
 }
-
-
-
-
-
 
 pub struct IpScnr {}
 
 impl IpScnr {
-
-    pub async fn scan_ip_addr(address: IpAddr,
+    pub async fn scan_ip_addr(
+        address: IpAddr,
         ports: Vec<u16>,
         timeout: u64,
     ) -> Result<Vec<u16>, std::io::Error> {
-        let mut open_ports: Vec<u16>= vec![];
+        let mut open_ports: Vec<u16> = vec![];
         for port in ports {
             let socket_address: SocketAddr = SocketAddr::new(address, port);
             match tokio::time::timeout(
                 Duration::from_millis(timeout),
-                  TcpStream::connect(socket_address)).await{
-                Ok(stream_result)=>{
+                TcpStream::connect(socket_address),
+            )
+            .await
+            {
+                Ok(stream_result) => {
                     if stream_result.is_ok() {
                         open_ports.push(port);
                     }
-                },
-                Err(_)=>{continue},
+                }
+                Err(_) => continue,
             }
         }
         Ok(open_ports)
@@ -196,14 +213,12 @@ impl IpScnr {
         }
         Ok(banner_records)
     }*/
-
-
 }
 /*
 fn parse_banner(banner: &str) -> String {
     let b_vec = Vec::from_iter(banner.split(' '));
     String::from(b_vec[0])
-    
+
 }*/
 
 async fn deserialize_dropbox(data: &str) -> Result<DropBox, String> {
