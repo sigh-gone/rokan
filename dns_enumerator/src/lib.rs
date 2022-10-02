@@ -15,6 +15,7 @@ pub struct DomainRecord {
     ns: Vec<String>,
     cname: Vec<String>,
     srv:Vec<String>,
+    ptr:Vec<String>,
 }
 #[derive(Debug)]
 pub struct HostDnsRecord {
@@ -71,6 +72,7 @@ pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
         ns:vec![],
         cname:vec![],
         srv:vec![],
+        ptr:vec![],
     };
 
     for rtype in rtype_vec {
@@ -110,7 +112,9 @@ pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
                 NS(resp) => {
                     dns_record.ns.push(resp);
                 },
-                PTR(_) => {},
+                PTR(resp) => {
+                    dns_record.ptr.push(resp.to_string());
+                },
                 TXT(resp) => {
                     dns_record.txt.push(resp.to_string());
                 },
