@@ -14,34 +14,36 @@ pub struct DomainRecord {
     txt: Vec<String>,
     ns: Vec<String>,
     cname: Vec<String>,
-    srv:Vec<String>,
-    ptr:Vec<String>,
+    srv: Vec<String>,
+    ptr: Vec<String>,
 }
 #[derive(Debug)]
 pub struct HostDnsRecord {
-    host:String,
-    domain_record:DomainRecord
+    host: String,
+    domain_record: DomainRecord,
 }
 
-
-
-pub fn host_dns(host:&str)->Result<HostDnsRecord, &str>{
-
-        if let Ok(dns_records) = dns_records(host){
-            let host_dns_record = HostDnsRecord{ host : String::from(host), domain_record: dns_records};
-            Ok(host_dns_record)
-        }else{
-            Err("host_dns failed")
-        }
-
+pub fn host_dns(host: &str) -> Result<HostDnsRecord, &str> {
+    if let Ok(dns_records) = dns_records(host) {
+        let host_dns_record = HostDnsRecord {
+            host: String::from(host),
+            domain_record: dns_records,
+        };
+        Ok(host_dns_record)
+    } else {
+        Err("host_dns failed")
+    }
 }
 
-pub fn multi_host_dns(hosts:Vec<&str>)->Result<Vec<HostDnsRecord>, Box<Error>>{
-    let mut ret_vec :Vec<HostDnsRecord> = vec![];
+pub fn multi_host_dns(hosts: Vec<&str>) -> Result<Vec<HostDnsRecord>, Box<Error>> {
+    let mut ret_vec: Vec<HostDnsRecord> = vec![];
 
     for host in hosts {
-        if let Ok(dns_records) = dns_records(host){
-            let host_dns_record = HostDnsRecord{ host : String::from(host), domain_record: dns_records};
+        if let Ok(dns_records) = dns_records(host) {
+            let host_dns_record = HostDnsRecord {
+                host: String::from(host),
+                domain_record: dns_records,
+            };
             ret_vec.push(host_dns_record);
         }
     }
@@ -63,16 +65,16 @@ pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
         Type::CNAME,
         Type::SRV,
     ];
-    let mut dns_record = DomainRecord{
-        a:vec![],
-        aaaa:vec![],
-        mx:vec![],
-        soa:vec![],
-        txt:vec![],
-        ns:vec![],
-        cname:vec![],
-        srv:vec![],
-        ptr:vec![],
+    let mut dns_record = DomainRecord {
+        a: vec![],
+        aaaa: vec![],
+        mx: vec![],
+        soa: vec![],
+        txt: vec![],
+        ns: vec![],
+        cname: vec![],
+        srv: vec![],
+        ptr: vec![],
     };
 
     for rtype in rtype_vec {
@@ -102,34 +104,34 @@ pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
             match record.resource {
                 A(resp) => {
                     dns_record.a.push(resp.to_string());
-                },
+                }
                 AAAA(resp) => {
                     dns_record.aaaa.push(resp.to_string());
-                },
+                }
                 CNAME(resp) => {
                     dns_record.cname.push(resp);
-                },
+                }
                 NS(resp) => {
                     dns_record.ns.push(resp);
-                },
+                }
                 PTR(resp) => {
                     dns_record.ptr.push(resp.to_string());
-                },
+                }
                 TXT(resp) => {
                     dns_record.txt.push(resp.to_string());
-                },
-                SPF(_) => {},
+                }
+                SPF(_) => {}
                 MX(resp) => {
                     dns_record.mx.push(resp.to_string());
-                },
+                }
                 SOA(resp) => {
                     dns_record.soa.push(resp.to_string());
-                },
-                SRV(resp) =>{
+                }
+                SRV(resp) => {
                     dns_record.srv.push(resp.to_string());
-                },
-                OPT => {},
-                ANY => {},
+                }
+                OPT => {}
+                ANY => {}
             }
         }
     }
@@ -141,10 +143,9 @@ pub fn dns_records(host: &str) -> Result<DomainRecord, Box<Error>> {
 mod dns_tests {
     use crate::dns_records;
 
-
     #[test]
     fn dns_test() {
-        let dns =dns_records("example.com");
+        let dns = dns_records("example.com");
         println!("{:?}", dns);
         assert!(dns.is_ok());
         assert!(!dns.unwrap().a.is_empty());
